@@ -1,4 +1,4 @@
-# BankPro - Microservices Banking System
+# CreditBank - Microservices Banking System
 
 A modern banking simulation with Microservices architecture.
 

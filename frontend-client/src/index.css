@@ -44,10 +44,14 @@
     /* Zinc 200 */
     --input: 240 5.9% 90%;
 
-    /* Ring: Focus rings */
     --ring: 240 5.9% 10%;
 
     --radius: 0.75rem;
+
+    /* Custom Modal Variables (Out of the box fix) */
+    --modal-static-bg: #ffffff;
+    --modal-static-text: #09090b;
+    --modal-static-border: #e4e4e7;
   }
 
   .dark {
@@ -95,6 +99,11 @@
 
     /* Ring */
     --ring: 217.2 91.2% 59.8%;
+
+    /* Custom Modal Variables (Out of the box fix) */
+    --modal-static-bg: #020617;
+    --modal-static-text: #f8fafc;
+    --modal-static-border: #1e293b;
   }
 }
 
@@ -141,15 +150,18 @@
   transition-duration: 300ms;
 }
 
+
 .perspective {
   perspective: 1000px;
 }
 
 .transform-style-3d {
+  -webkit-transform-style: preserve-3d;
   transform-style: preserve-3d;
 }
 
 .backface-hidden {
+  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
 }
 

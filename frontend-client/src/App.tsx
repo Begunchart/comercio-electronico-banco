@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, useNavigate, Navigate } from 'react-router-dom';
 import { Home } from './components/Home';
 import { CreateAccount } from './components/CreateAccount';
@@ -7,15 +7,63 @@ import { Dashboard } from './components/Dashboard';
 import { TellerView } from './components/staff/TellerView';
 import { CustomerServiceView } from './components/staff/CustomerServiceView';
 import { MintMoney } from './components/MintMoney';
-import { ThemeToggle } from './components/ThemeToggle';
+import { SessionTimeout } from './components/SessionTimeout';
 import { User } from './types';
 
 const API_URL = 'http://localhost:8080';
+const INACTIVITY_LIMIT = 2.5 * 60 * 1000; // 2 minutes 30 seconds
 
 export default function App() {
   const navigate = useNavigate();
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('token'));
+  const [authToken, setAuthToken] = useState<string | null>(
+    sessionStorage.getItem('token')
+  );
+
+  // Timeout State
+  const [lastActivity, setLastActivity] = useState(Date.now());
+  const [showTimeoutModal, setShowTimeoutModal] = useState(false);
+
+  const handleLogout = useCallback(() => {
+    setCurrentUser(null);
+    setAuthToken(null);
+    sessionStorage.removeItem('token');
+    setShowTimeoutModal(false);
+    navigate('/');
+  }, [navigate]);
+
+  // Activity Tracker
+  useEffect(() => {
+    const events = ['mousedown', 'mousemove', 'keydown', 'scroll', 'touchstart'];
+
+    const resetTimer = () => {
+      if (!showTimeoutModal) {
+        setLastActivity(Date.now());
+      }
+    };
+
+    // Check inactivity every second
+    const interval = setInterval(() => {
+      if (authToken && !showTimeoutModal) {
+        const now = Date.now();
+        if (now - lastActivity > INACTIVITY_LIMIT) {
+          setShowTimeoutModal(true);
+        }
+      }
+    }, 1000);
+
+    // Add listeners
+    events.forEach(event => {
+      window.addEventListener(event, resetTimer);
+    });
+
+    return () => {
+      clearInterval(interval);
+      events.forEach(event => {
+        window.removeEventListener(event, resetTimer);
+      });
+    };
+  }, [authToken, showTimeoutModal, lastActivity]);
 
   // Effect to validate token/load user on mount
   useEffect(() => {
@@ -41,7 +89,7 @@ export default function App() {
           handleLogout();
         });
     }
-  }, [authToken]);
+  }, [authToken, handleLogout]);
 
   const handleLogin = async (email: string, password: string) => {
     try {
@@ -62,8 +110,11 @@ export default function App() {
       const data = await res.json();
       const token = data.access_token;
 
-      localStorage.setItem('token', token);
+      // Always use sessionStorage for security (cleared on browser close)
+      sessionStorage.setItem('token', token);
+
       setAuthToken(token);
+      setLastActivity(Date.now()); // Reset activity on login
 
       // Fetch User Details immediately
       const userRes = await fetch(`${API_URL}/auth/users/me`, {
@@ -107,7 +158,7 @@ export default function App() {
           full_name: userData.name,
           password: userData.password,
           cedula: userData.cedula,
-          phone: userData.phone, // NEW: Sending phone
+          phone: userData.phone,
           role: 'client'
         })
       });
@@ -127,16 +178,19 @@ export default function App() {
     }
   };
 
-  const handleLogout = () => {
-    setCurrentUser(null);
-    setAuthToken(null);
-    localStorage.removeItem('token');
-    navigate('/');
+  const extendSession = () => {
+    setLastActivity(Date.now());
+    setShowTimeoutModal(false);
   };
 
   return (
     <div className="font-sans text-foreground bg-background antialiased selection:bg-primary/20">
-      <ThemeToggle className="fixed top-4 left-4 z-50" />
+      <SessionTimeout
+        isOpen={showTimeoutModal}
+        onExtend={extendSession}
+        onLogout={handleLogout}
+      />
+
       <Routes>
         <Route path="/" element={
           <Home
@@ -156,6 +210,7 @@ export default function App() {
         <Route path="/login" element={
           <Login
             onBack={() => navigate('/')}
+            onRegister={() => navigate('/register')}
             onLoginSuccess={(email, password) => handleLogin(email, password)}
           />
         } />
@@ -184,3 +239,4 @@ export default function App() {
     </div>
   );
 }
+

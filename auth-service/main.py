@@ -37,6 +37,11 @@ class UserCreate(BaseModel):
     def validate_phone(cls, v):
         if not v:
             return None
+        
+        # Remove + if present
+        if v.startswith("+"):
+            v = v[1:]
+            
         v = v.strip().replace(" ", "").replace("-", "")
         
         allowed_prefixes = ["0412", "0422", "0414", "0424", "0416", "0426"]
@@ -44,6 +49,10 @@ class UserCreate(BaseModel):
         # Check basic digit requirement
         if not v.isdigit():
              raise ValueError("El teléfono solo debe contener números")
+
+        # Handle 12 digits starting with 58 (e.g., 584121234567) -> treat as local
+        if len(v) == 12 and v.startswith("58"):
+             v = "0" + v[2:] # 58412... -> 0412...
 
         # Handle 10 digits (e.g., 4121234567 -> 04121234567)
         if len(v) == 10 and v.startswith("4"):
@@ -101,6 +110,11 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
         db_cedula = db.query(User).filter(User.cedula == user.cedula).first()
         if db_cedula:
             raise HTTPException(status_code=400, detail="Cedula already registered")
+
+    if user.phone:
+        db_phone = db.query(User).filter(User.phone == user.phone).first()
+        if db_phone:
+            raise HTTPException(status_code=400, detail="Phone already registered")
 
     # Public registration forces client role
     hashed_password = get_password_hash(user.password)

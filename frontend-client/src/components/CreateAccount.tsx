@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft, User, Mail, Lock, Phone, MapPin, CreditCard } from 'lucide-react';
 import { User as UserType } from '../App';
+import { ThemeToggle } from './ThemeToggle';
 
 interface CreateAccountProps {
   onBack: () => void;
@@ -30,7 +31,8 @@ export function CreateAccount({ onBack, onAccountCreated }: CreateAccountProps) 
   };
 
   return (
-    <div className="min-h-screen py-12 px-4">
+    <div className="min-h-screen py-12 px-4 relative">
+      <ThemeToggle className="absolute top-4 right-4" />
       <div className="max-w-md mx-auto">
         <button
           onClick={onBack}

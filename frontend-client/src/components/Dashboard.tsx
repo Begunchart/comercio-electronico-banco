@@ -6,6 +6,8 @@ import { Movements } from './dashboard/Movements';
 import { Cards } from './dashboard/Cards';
 import { Transfers } from './dashboard/Transfers';
 import { ThemeToggle } from './ThemeToggle';
+import logoImage from 'figma:asset/65e92236dcc293ad564d2129716c5287a52b553e.png';
+
 
 interface DashboardProps {
   user: User;
@@ -80,10 +82,8 @@ export function Dashboard({ user, onLogout, token, apiUrl }: DashboardProps) {
       {/* Sidebar (Desktop) */}
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-card border-r transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="p-6 h-full flex flex-col">
-          <div className="flex items-center gap-2 mb-10 text-primary">
-            <div className="w-8 h-8 rounded-lg bg-primary text-primary-foreground flex items-center justify-center font-bold text-xl">
-              C
-            </div>
+          <div className="flex items-center gap-2 mb-10">
+            <img src={logoImage} alt="CreditBank" className="h-10 w-auto" />
             <span className="text-xl font-bold tracking-tight text-foreground">CreditBank</span>
           </div>
 

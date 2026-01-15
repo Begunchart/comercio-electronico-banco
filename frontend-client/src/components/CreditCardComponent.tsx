@@ -10,15 +10,15 @@ export function CreditCardComponent({ card }: CreditCardComponentProps) {
   const [isFlipped, setIsFlipped] = useState(false);
 
   return (
-    <div className="group perspective hover:scale-[1.02] transition-transform duration-300">
+    <div className="group hover:scale-[1.02] transition-transform duration-300" style={{ perspective: '1000px' }}>
       <div
-        className={`relative transition-all duration-700 transform-style-3d transform-gpu ${isFlipped ? 'rotate-y-180' : ''}`}
-        style={{ minHeight: '224px' }}
+        className={`relative transition-all duration-700 ${isFlipped ? 'rotate-y-180' : ''}`}
+        style={{ minHeight: '224px', transformStyle: 'preserve-3d', transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
       >
         {/* Card Front */}
         <div
           className="absolute inset-0 w-full h-56 rounded-2xl p-6 text-white shadow-2xl overflow-hidden backface-hidden"
-          style={{ background: card.color, zIndex: 2 }}
+          style={{ background: card.color, zIndex: 2, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'translateZ(1px)' }}
         >
           {/* Card Background Pattern */}
           <div className="absolute inset-0 opacity-10">
@@ -71,7 +71,7 @@ export function CreditCardComponent({ card }: CreditCardComponentProps) {
         {/* Card Back */}
         <div
           className="absolute inset-0 w-full h-56 rounded-2xl text-white shadow-2xl overflow-hidden backface-hidden rotate-y-180"
-          style={{ background: card.color, zIndex: 1 }}
+          style={{ background: card.color, zIndex: 1, backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden', transform: 'rotateY(180deg) translateZ(1px)' }}
         >
           <div className="w-full h-12 bg-black/80 mt-6 relative"></div>
           <div className="px-6 mt-6">
