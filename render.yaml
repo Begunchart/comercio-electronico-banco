@@ -1,0 +1,37 @@
+services:
+  # Auth Service
+  - type: web
+    name: auth-service
+    runtime: docker
+    rootDir: auth-service
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: DATABASE_URL
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: 30
+
+  # Core Banking Service
+  - type: web
+    name: core-banking-service
+    runtime: docker
+    rootDir: core-banking-service
+    envVars:
+      - key: PORT
+        value: 8000
+      - key: DATABASE_URL
+        sync: false
+
+  # Gateway Service
+  - type: web
+    name: gateway-service
+    runtime: docker
+    rootDir: gateway-service
+    envVars:
+      - key: AUTH_SERVICE_URL
+        value: http://auth-service:8000
+      - key: CORE_SERVICE_URL
+        value: http://core-banking-service:8000

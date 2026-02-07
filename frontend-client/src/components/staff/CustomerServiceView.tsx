@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Search, CreditCard, DollarSign } from 'lucide-react';
+import { API_URL } from '../../config';
 
 export function CustomerServiceView() {
     const [cedula, setCedula] = useState('');
@@ -20,7 +21,7 @@ export function CustomerServiceView() {
             const token = localStorage.getItem('token');
             if (!token) throw new Error("No authorized");
 
-            const res = await fetch(`http://localhost:8080/auth/users/search?cedula=${cedula}`, {
+            const res = await fetch(`${API_URL}/auth/users/search?cedula=${cedula}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
 
@@ -51,7 +52,7 @@ export function CustomerServiceView() {
             // But updated requirements say: "Customer Service to print money... by cedula".
             // So we call the same endpoint.
 
-            const res = await fetch('http://localhost:8080/core/admin/mint-money', {
+            const res = await fetch(`${API_URL}/core/admin/mint-money`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

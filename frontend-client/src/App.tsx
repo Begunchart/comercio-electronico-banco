@@ -10,7 +10,7 @@ import { MintMoney } from './components/MintMoney';
 import { SessionTimeout } from './components/SessionTimeout';
 import { User } from './types';
 
-const API_URL = 'http://localhost:8080';
+import { API_URL } from './config';
 const INACTIVITY_LIMIT = 2.5 * 60 * 1000; // 2 minutes 30 seconds
 
 export default function App() {

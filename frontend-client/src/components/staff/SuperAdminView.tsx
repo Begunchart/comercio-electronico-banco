@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_URL } from '../../config';
 
 export function SuperAdminView() {
     const [username, setUsername] = useState('');
@@ -16,7 +17,7 @@ export function SuperAdminView() {
             const token = localStorage.getItem('token');
             if (!token) throw new Error("No token");
 
-            const res = await fetch('http://localhost:8080/auth/admin/create-staff', {
+            const res = await fetch(`${API_URL}/auth/admin/create-staff`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

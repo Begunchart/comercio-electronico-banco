@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_URL } from '../../config';
 
 export function TellerView() {
     const [userId, setUserId] = useState('');
@@ -18,7 +19,7 @@ export function TellerView() {
                 throw new Error("No token found. Login as teller first.");
             }
 
-            const res = await fetch('http://localhost:8080/core/admin/mint-money', {
+            const res = await fetch(`${API_URL}/core/admin/mint-money`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

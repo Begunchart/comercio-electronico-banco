@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { API_URL } from '../config';
 
 export function AdminPanel({ onBack }: { onBack: () => void }) {
     const [userId, setUserId] = useState('');
@@ -19,7 +20,7 @@ export function AdminPanel({ onBack }: { onBack: () => void }) {
                 throw new Error("No token found. Login as admin first.");
             }
 
-            const res = await fetch('http://localhost:8080/core/admin/mint-money', {
+            const res = await fetch(`${API_URL}/core/admin/mint-money`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
