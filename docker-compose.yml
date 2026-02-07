@@ -1,0 +1,53 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: bank_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  auth-service:
+    build: ./auth-service
+    volumes:
+      - ./auth-service:/app
+    environment:
+      DATABASE_URL: postgresql://postgres:password@db:5432/bank_db
+    depends_on:
+      - db
+    ports:
+      - "8001:8000"
+
+  core-banking-service:
+    build: ./core-banking-service
+    volumes:
+      - ./core-banking-service:/app
+    environment:
+      DATABASE_URL: postgresql://postgres:password@db:5432/bank_db
+      AUTH_SERVICE_URL: http://auth-service:8000
+    depends_on:
+      - db
+      - auth-service
+    ports:
+      - "8002:8000"
+
+  gateway-service:
+    build: ./gateway-service
+    depends_on:
+      - auth-service
+      - core-banking-service
+    ports:
+      - "8080:80"
+
+  frontend:
+    build: ./frontend-client
+    ports:
+      - "3000:80"
+    depends_on:
+      - gateway-service
+
+volumes:
+  postgres_data:

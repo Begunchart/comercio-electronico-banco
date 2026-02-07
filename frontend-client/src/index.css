@@ -1,0 +1,170 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    /* === LIGHT MODE (Minimalist / Clean) === */
+    /* Background: Pure White / Very Subtle Gray */
+    --background: 0 0% 100%;
+    /* #FFFFFF */
+    --foreground: 240 10% 3.9%;
+    /* #09090b (Zinc 950) */
+
+    /* Cards: White with specific shadow treatments (handled in utilities) */
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+
+    /* Popovers */
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    /* Primary: Vivid Blue/Indigo (Accessible) */
+    --primary: 221.2 83.2% 53.3%;
+    /* #2563EB (Blue 600) */
+    --primary-foreground: 210 40% 98%;
+
+    /* Secondary: Subtle Gray Backgrounds */
+    --secondary: 240 4.8% 95.9%;
+    /* #F4F4F5 (Zinc 100) */
+    --secondary-foreground: 240 5.9% 10%;
+
+    /* Muted: Text or inactive items */
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+
+    /* Accent: Highlights */
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+
+    /* Destructive: Error states */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Borders */
+    --border: 240 5.9% 90%;
+    /* Zinc 200 */
+    --input: 240 5.9% 90%;
+
+    --ring: 240 5.9% 10%;
+
+    --radius: 0.75rem;
+
+    /* Custom Modal Variables (Out of the box fix) */
+    --modal-static-bg: #ffffff;
+    --modal-static-text: #09090b;
+    --modal-static-border: #e4e4e7;
+  }
+
+  .dark {
+    /* === DARK MODE (Deep / Professional) === */
+    /* Background: Rich Black / Navy Tint */
+    --background: 224 71% 4%;
+    /* #020817 (Slate 950 equivalent) */
+    --foreground: 210 40% 98%;
+    /* #F8FAFC */
+
+    /* Cards: Slightly lighter than bg */
+    --card: 222 47% 11%;
+    /* #0F172A (Slate 900) */
+    --card-foreground: 210 40% 98%;
+
+    /* Popover */
+    --popover: 222 47% 11%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Primary: Bright Cyan/Blue for contrast */
+    --primary: 217.2 91.2% 59.8%;
+    /* #3B82F6 (Blue 500) */
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    /* Secondary: Dark Gray/Slate */
+    --secondary: 217.2 32.6% 17.5%;
+    /* Slate 800 */
+    --secondary-foreground: 210 40% 98%;
+
+    /* Muted */
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    /* Accent */
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    /* Destructive */
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    /* Borders: Dark Slate */
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+
+    /* Ring */
+    --ring: 217.2 91.2% 59.8%;
+
+    /* Custom Modal Variables (Out of the box fix) */
+    --modal-static-bg: #020617;
+    --modal-static-text: #f8fafc;
+    --modal-static-border: #1e293b;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border) / 0.2);
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Modern Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+}
+
+/* Custom Utilities */
+.transition-colors {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 300ms;
+}
+
+
+.perspective {
+  perspective: 1000px;
+}
+
+.transform-style-3d {
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
