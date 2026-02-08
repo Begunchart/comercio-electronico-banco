@@ -1,8 +1,4 @@
-# Render Blueprint - CreditBank Microservices
-# https://render.com/docs/infrastructure-as-code
-
 services:
-  # Auth Service - Handles user authentication and JWT tokens
   - type: web
     name: creditbank-auth
     runtime: python
@@ -11,11 +7,10 @@ services:
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
-        value: ""
+        sync: false
       - key: SECRET_KEY
         generateValue: true
 
-  # Core Banking Service - Handles accounts, transfers, cards
   - type: web
     name: creditbank-core
     runtime: python
@@ -24,6 +19,6 @@ services:
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
-        value: ""
+        sync: false
       - key: SECRET_KEY
         generateValue: true
