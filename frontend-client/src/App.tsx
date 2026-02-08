@@ -10,7 +10,9 @@ import { MintMoney } from './components/MintMoney';
 import { SessionTimeout } from './components/SessionTimeout';
 import { User } from './types';
 
-const API_URL = 'http://localhost:8080';
+// API URLs - Use environment variables for production (Render URLs)
+const AUTH_API_URL = import.meta.env.VITE_AUTH_API_URL || 'http://localhost:8001';
+const CORE_API_URL = import.meta.env.VITE_CORE_API_URL || 'http://localhost:8002';
 const INACTIVITY_LIMIT = 2.5 * 60 * 1000; // 2 minutes 30 seconds
 
 export default function App() {
@@ -69,7 +71,7 @@ export default function App() {
   useEffect(() => {
     if (authToken) {
       // Fetch user profile
-      fetch(`${API_URL}/auth/users/me`, {
+      fetch(`${AUTH_API_URL}/users/me`, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       })
         .then(res => {
@@ -97,7 +99,7 @@ export default function App() {
       form.append('username', email);
       form.append('password', password);
 
-      const res = await fetch(`${API_URL}/auth/login`, {
+      const res = await fetch(`${AUTH_API_URL}/login`, {
         method: 'POST',
         body: form
       });
@@ -117,7 +119,7 @@ export default function App() {
       setLastActivity(Date.now()); // Reset activity on login
 
       // Fetch User Details immediately
-      const userRes = await fetch(`${API_URL}/auth/users/me`, {
+      const userRes = await fetch(`${AUTH_API_URL}/users/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const userDetails = await userRes.json();
@@ -132,7 +134,7 @@ export default function App() {
       setCurrentUser(user);
 
       // Ensure Core Account Exists
-      await fetch(`${API_URL}/core/accounts`, {
+      await fetch(`${CORE_API_URL}/accounts`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -150,7 +152,7 @@ export default function App() {
 
   const handleCreateAccount = async (userData: any) => {
     try {
-      const res = await fetch(`${API_URL}/auth/register`, {
+      const res = await fetch(`${AUTH_API_URL}/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -221,7 +223,7 @@ export default function App() {
               user={currentUser}
               onLogout={handleLogout}
               token={authToken}
-              apiUrl={API_URL}
+              coreApiUrl={CORE_API_URL}
             />
           ) : (
             <Navigate to="/login" />

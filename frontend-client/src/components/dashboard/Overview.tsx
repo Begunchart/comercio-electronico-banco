@@ -5,16 +5,16 @@ import { ArrowUpRight, ArrowDownLeft, Wallet } from 'lucide-react';
 interface OverviewProps {
     account: Account | null;
     token: string;
-    apiUrl: string;
+    coreApiUrl: string;
 }
 
-export function Overview({ account, token, apiUrl }: OverviewProps) {
+export function Overview({ account, token, coreApiUrl }: OverviewProps) {
     const [stats, setStats] = useState({ income: 0, expense: 0 });
 
     useEffect(() => {
         if (!token) return;
 
-        fetch(`${apiUrl}/core/transactions`, {
+        fetch(`${coreApiUrl}/transactions`, {
             headers: { Authorization: `Bearer ${token}` }
         })
             .then(res => res.json())
@@ -40,7 +40,7 @@ export function Overview({ account, token, apiUrl }: OverviewProps) {
                 }
             })
             .catch(console.error);
-    }, [token, apiUrl]);
+    }, [token, coreApiUrl]);
 
     if (!account) return <div className="p-4 text-muted-foreground">Cargando cuentas...</div>;
 

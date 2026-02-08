@@ -6,6 +6,11 @@ from pydantic import BaseModel, validator
 from passlib.context import CryptContext
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import Optional
+import os
+
+# JWT Configuration - Use environment variable in production!
+SECRET_KEY = os.getenv("SECRET_KEY", "mysecretkey")
+ALGORITHM = "HS256"
 
 # Create tables
 Base.metadata.create_all(bind=engine)
@@ -134,10 +139,8 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
 
 @app.get("/users/search", response_model=UserResponse)
 def search_user(cedula: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-     # Verify Staff
+    # Verify Staff
     from jose import jwt
-    SECRET_KEY = "mysecretkey"
-    ALGORITHM = "HS256"
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         role = payload.get("role")
@@ -155,8 +158,6 @@ def search_user(cedula: str, token: str = Depends(oauth2_scheme), db: Session = 
 def create_staff(user: UserCreate, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     # Verify Admin
     from jose import jwt
-    SECRET_KEY = "mysecretkey"
-    ALGORITHM = "HS256"
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         role = payload.get("role")
@@ -198,10 +199,6 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
     
     # Minimal JWT implementation
     from jose import jwt
-    import datetime
-    
-    SECRET_KEY = "mysecretkey"
-    ALGORITHM = "HS256"
     
     token_data = {
         "sub": user.username,
@@ -216,8 +213,6 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 def read_users_me(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     # Verify token
     from jose import jwt
-    SECRET_KEY = "mysecretkey"
-    ALGORITHM = "HS256"
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")

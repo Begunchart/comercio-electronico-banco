@@ -13,12 +13,12 @@ interface DashboardProps {
   user: User;
   onLogout: () => void;
   token: string;
-  apiUrl: string;
+  coreApiUrl: string;
 }
 
 type Tab = 'overview' | 'movements' | 'cards' | 'transfers';
 
-export function Dashboard({ user, onLogout, token, apiUrl }: DashboardProps) {
+export function Dashboard({ user, onLogout, token, coreApiUrl }: DashboardProps) {
   const [activeTab, setActiveTab] = useState<Tab>('overview');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
@@ -28,7 +28,7 @@ export function Dashboard({ user, onLogout, token, apiUrl }: DashboardProps) {
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   const fetchAccount = () => {
-    fetch(`${apiUrl}/core/accounts/me`, {
+    fetch(`${coreApiUrl}/accounts/me`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -39,7 +39,7 @@ export function Dashboard({ user, onLogout, token, apiUrl }: DashboardProps) {
   };
 
   const fetchNotifications = () => {
-    fetch(`${apiUrl}/core/notifications`, {
+    fetch(`${coreApiUrl}/notifications`, {
       headers: { Authorization: `Bearer ${token}` }
     })
       .then(res => res.json())
@@ -58,10 +58,10 @@ export function Dashboard({ user, onLogout, token, apiUrl }: DashboardProps) {
     // Poll every 10s
     const interval = setInterval(fetchNotifications, 10000);
     return () => clearInterval(interval);
-  }, [token, apiUrl]);
+  }, [token, coreApiUrl]);
 
   const markRead = () => {
-    fetch(`${apiUrl}/core/notifications/read-all`, {
+    fetch(`${coreApiUrl}/notifications/read-all`, {
       method: 'PUT',
       headers: { Authorization: `Bearer ${token}` }
     }).then(() => {
@@ -189,13 +189,13 @@ export function Dashboard({ user, onLogout, token, apiUrl }: DashboardProps) {
         {/* Scrollable Area */}
         <div className="flex-1 overflow-y-auto p-4 md:p-8">
           <div className="max-w-6xl mx-auto">
-            {activeTab === 'overview' && <Overview account={account} token={token} apiUrl={apiUrl} />}
-            {activeTab === 'movements' && <Movements token={token} apiUrl={apiUrl} />}
-            {activeTab === 'cards' && <Cards token={token} apiUrl={apiUrl} userFullName={user.full_name || user.username} />}
+            {activeTab === 'overview' && <Overview account={account} token={token} coreApiUrl={coreApiUrl} />}
+            {activeTab === 'movements' && <Movements token={token} coreApiUrl={coreApiUrl} />}
+            {activeTab === 'cards' && <Cards token={token} coreApiUrl={coreApiUrl} userFullName={user.full_name || user.username} />}
             {activeTab === 'transfers' && (
               <Transfers
                 token={token}
-                apiUrl={apiUrl}
+                coreApiUrl={coreApiUrl}
                 myAccount={account}
                 onTransferSuccess={fetchAccount}
               />

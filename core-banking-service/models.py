@@ -19,6 +19,7 @@ class Card(Base):
     card_number = Column(String, unique=True, index=True)
     expiry = Column(String)
     cvv = Column(String)
+    credit_limit = Column(Float, default=5000.0)
 
 class Transaction(Base):
     __tablename__ = "transactions"

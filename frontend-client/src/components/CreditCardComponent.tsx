@@ -1,4 +1,4 @@
-import { CreditCard } from '../types';
+import { Card as CreditCard } from '../types';
 import { Wifi, RotateCw } from 'lucide-react';
 import { useState } from 'react';
 
@@ -110,8 +110,17 @@ export function CreditCardComponent({ card }: CreditCardComponentProps) {
             <span className="text-gray-600">Tipo de Cuenta</span>
             <span className="text-gray-900 font-medium">Corriente</span>
           </div>
+          {card.limit && card.limit > 0 && (
+            <div className="flex justify-between items-center mb-3">
+              <span className="text-gray-600">Límite de Crédito</span>
+              <span className="text-gray-900 font-medium">${card.limit.toLocaleString()}</span>
+            </div>
+          )}
           <p className="text-xs text-muted-foreground text-center mt-4">
-            Tarjeta de Débito asociada a tu cuenta principal
+            {card.limit && card.limit > 0
+              ? "Tarjeta de Crédito con cupo disponible"
+              : "Tarjeta de Débito asociada a tu cuenta principal"
+            }
           </p>
         </div>
       </div>
