@@ -6,13 +6,13 @@ services:
     rootDir: auth-service
     envVars:
       - key: PORT
-        value: 8000
+        value: "8000"
       - key: DATABASE_URL
-        sync: false
+        value: "postgresql://neondb_owner:npg_5a3WjHkBVXnP@ep-restless-shadow-aiexms99-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
       - key: JWT_SECRET
         generateValue: true
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
-        value: 30
+        value: "30"
 
   # Core Banking Service
   - type: web
@@ -21,9 +21,9 @@ services:
     rootDir: core-banking-service
     envVars:
       - key: PORT
-        value: 8000
+        value: "8000"
       - key: DATABASE_URL
-        value: postgresql://neondb_owner:npg_5a3WjHkBVXnP@ep-restless-shadow-aiexms99-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+        value: "postgresql://neondb_owner:npg_5a3WjHkBVXnP@ep-restless-shadow-aiexms99-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
 
   # Gateway Service
   - type: web
@@ -32,6 +32,6 @@ services:
     rootDir: gateway-service
     envVars:
       - key: AUTH_SERVICE_URL
-        value: http://auth-service:8000
+        value: "http://auth-service:8000"
       - key: CORE_SERVICE_URL
-        value: http://core-banking-service:8000
+        value: "http://core-banking-service:8000"
