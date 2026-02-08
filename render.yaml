@@ -11,9 +11,9 @@ services:
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
-        sync: false
+        value: ""
       - key: SECRET_KEY
-        sync: false
+        generateValue: true
 
   # Core Banking Service - Handles accounts, transfers, cards
   - type: web
@@ -24,6 +24,6 @@ services:
     startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
-        sync: false
+        value: ""
       - key: SECRET_KEY
-        sync: false
+        generateValue: true
