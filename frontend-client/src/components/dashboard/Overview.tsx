@@ -14,7 +14,7 @@ export function Overview({ account, token, coreApiUrl }: OverviewProps) {
     useEffect(() => {
         if (!token) return;
 
-        fetch(`${coreApiUrl}/transactions`, {
+        fetch(`${coreApiUrl}/movements`, {
             headers: { Authorization: `Bearer ${token}` }
         })
             .then(res => res.json())
