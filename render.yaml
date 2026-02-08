@@ -34,8 +34,13 @@ services:
     rootDir: gateway-service
     plan: free
     envVars:
-      # Usamos el valor directo. Render resolverá "auth-service" a la IP interna correcta.
       - key: AUTH_SERVICE_URL
-        value: "http://auth-service:8000"
+        fromService:
+          type: web
+          name: auth-service
+          property: hostport   # <--- CAMBIO AQUÍ
       - key: CORE_SERVICE_URL
-        value: "http://core-banking-service:8000"
+        fromService:
+          type: web
+          name: core-banking-service
+          property: hostport   # <--- CAMBIO AQUÍ
