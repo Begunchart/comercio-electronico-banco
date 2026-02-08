@@ -2,13 +2,14 @@ services:
   # Auth Service
   - type: web
     name: auth-service
-    runtime: docker
+    env: docker                # CORREGIDO: 'env' en lugar de 'runtime'
     rootDir: auth-service
+    plan: free                 # OPCIONAL: Para asegurar que usa el plan gratuito
     envVars:
       - key: PORT
         value: "8000"
       - key: DATABASE_URL
-        value: "postgresql://neondb_owner:npg_5a3WjHkBVXnP@ep-restless-shadow-aiexms99-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+        sync: false            # Mantiene el valor oculto en el dashboard, no lo pongas aquí
       - key: JWT_SECRET
         generateValue: true
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
@@ -17,21 +18,30 @@ services:
   # Core Banking Service
   - type: web
     name: core-banking-service
-    runtime: docker
+    env: docker                # CORREGIDO
     rootDir: core-banking-service
+    plan: free
     envVars:
       - key: PORT
         value: "8000"
       - key: DATABASE_URL
-        value: "postgresql://neondb_owner:npg_5a3WjHkBVXnP@ep-restless-shadow-aiexms99-pooler.c-4.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+        sync: false            # Mantiene el valor oculto
 
   # Gateway Service
   - type: web
     name: gateway-service
-    runtime: docker
+    env: docker                # CORREGIDO
     rootDir: gateway-service
+    plan: free
     envVars:
+      # CORREGIDO: Así se conectan servicios en Render dinámicamente
       - key: AUTH_SERVICE_URL
-        value: "http://auth-service:8000"
+        fromService:
+          type: web
+          name: auth-service
+          property: url        # Render inyectará la URL completa (https://...)
       - key: CORE_SERVICE_URL
-        value: "http://core-banking-service:8000"
+        fromService:
+          type: web
+          name: core-banking-service
+          property: url
