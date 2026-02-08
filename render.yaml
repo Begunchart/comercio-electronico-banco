@@ -30,18 +30,12 @@ services:
   # Gateway Service
   - type: web
     name: gateway-service
-    env: docker                # CORREGIDO
+    env: docker
     rootDir: gateway-service
     plan: free
     envVars:
-      # CORREGIDO: Así se conectan servicios en Render dinámicamente
+      # Usamos el valor directo. Render resolverá "auth-service" a la IP interna correcta.
       - key: AUTH_SERVICE_URL
-        fromService:
-          type: web
-          name: auth-service
-          property: url        # Render inyectará la URL completa (https://...)
+        value: "http://auth-service:8000"
       - key: CORE_SERVICE_URL
-        fromService:
-          type: web
-          name: core-banking-service
-          property: url
+        value: "http://core-banking-service:8000"
