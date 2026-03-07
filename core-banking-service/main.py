@@ -31,6 +31,13 @@ class TransferRequest(BaseModel):
     description: Optional[str] = "Transferencia"
     beneficiary_name: Optional[str] = None
 
+class ExternalTransferRequest(BaseModel):
+    amount: float
+    target_account_number: str
+    external_bank_name: str
+    external_card_number: str
+    description: Optional[str] = "Transferencia Externa"
+
 class BeneficiaryCreate(BaseModel):
     name: str
     account_number: str
@@ -269,6 +276,51 @@ def transfer(req: TransferRequest, payload: dict = Depends(get_current_user_payl
     
     db.commit()
     return {"message": "Transfer successful", "new_balance": from_account.balance}
+
+@app.post("/external/transfer-in")
+def external_transfer_in(req: ExternalTransferRequest, db: Session = Depends(get_db)):
+    # Note: Depending on security requirements, this endpoint might need its own
+    # specific authentication for external banks (e.g., API keys).
+    # Currently, it is unprotected to serve as a proof-of-concept webhook for interbank transfers.
+    
+    # 1. Get Receiver Account
+    to_account = db.query(Account).filter(Account.account_number == req.target_account_number).first()
+    if not to_account:
+        raise HTTPException(status_code=404, detail="Destination account not found")
+        
+    if req.amount <= 0:
+        raise HTTPException(status_code=400, detail="Invalid transfer amount")
+        
+    # 2. Execute Transfer (Deposit)
+    to_account.balance += req.amount
+    
+    # 3. Log Transaction for Receiver
+    tx_in = Transaction(
+        user_id=to_account.user_id,
+        amount=req.amount,
+        transaction_type="transfer_in",
+        description=f"Received from {req.external_bank_name} (Card {req.external_card_number[-4:]}) - {req.description}",
+        related_account_id=None # External, so no internal account ID
+    )
+    db.add(tx_in)
+    
+    # 4. Create Notification for Receiver
+    notif = Notification(
+        user_id=to_account.user_id,
+        title="Transferencia Externa Recibida",
+        message=f"Has recibido ${req.amount} desde {req.external_bank_name}.",
+        is_read=0
+    )
+    db.add(notif)
+    
+    db.commit()
+    
+    # Security: Do NOT return the new balance to the external bank
+    return {
+        "message": "Transfer received successfully",
+        "status": "completed",
+        "transaction_id": tx_in.id
+    }
 
 # CRITICAL ENDPOINT: MONEY PRINTER
 @app.post("/admin/mint-money")
