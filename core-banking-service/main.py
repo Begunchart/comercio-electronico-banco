@@ -288,7 +288,6 @@ def transfer(req: TransferRequest, payload: dict = Depends(get_current_user_payl
     db.commit()
     return {"message": "Transfer successful", "new_balance": from_account.balance}
 
-<<<<<<< HEAD
 @app.post("/external/transfer-in")
 def external_transfer_in(req: ExternalTransferRequest, db: Session = Depends(get_db)):
     # Note: Depending on security requirements, this endpoint might need its own
@@ -321,7 +320,20 @@ def external_transfer_in(req: ExternalTransferRequest, db: Session = Depends(get
         user_id=to_account.user_id,
         title="Transferencia Externa Recibida",
         message=f"Has recibido ${req.amount} desde {req.external_bank_name}.",
-=======
+        is_read=0
+    )
+    db.add(notif)
+    
+    db.commit()
+    
+    # Security: Do NOT return the new balance to the external bank
+    return {
+        "message": "Transfer received successfully",
+        "status": "completed",
+        "transaction_id": tx_in.id
+    }
+
+
 @app.post("/payments/card")
 def card_payment(req: PaymentRequest, db: Session = Depends(get_db)):
     # 1. Find the card
@@ -376,23 +388,11 @@ def card_payment(req: PaymentRequest, db: Session = Depends(get_db)):
         user_id=dest_account.user_id,
         title="Pago Recibido",
         message=f"Has recibido ${req.amount} de tarjeta de crédito.",
->>>>>>> 34040974bc50e3f04b8c4aa96735776994d23296
         is_read=0
     )
     db.add(notif)
     
     db.commit()
-<<<<<<< HEAD
-    
-    # Security: Do NOT return the new balance to the external bank
-    return {
-        "message": "Transfer received successfully",
-        "status": "completed",
-        "transaction_id": tx_in.id
-    }
-
-# CRITICAL ENDPOINT: MONEY PRINTER
-=======
     db.refresh(card)
     
     return {
@@ -400,7 +400,7 @@ def card_payment(req: PaymentRequest, db: Session = Depends(get_db)):
         "new_limit": card.credit_limit,
         "transaction_id": tx_out.id
     }
->>>>>>> 34040974bc50e3f04b8c4aa96735776994d23296
+
 @app.post("/admin/mint-money")
 def mint_money(req: MintRequest, payload: dict = Depends(get_current_user_payload), db: Session = Depends(get_db)):
     role = payload.get("role")
