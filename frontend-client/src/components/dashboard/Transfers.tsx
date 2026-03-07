@@ -4,12 +4,12 @@ import { Users, Send, Plus, Save, CreditCard, Phone, User } from 'lucide-react';
 
 interface TransfersProps {
     token: string;
-    apiUrl: string;
+    coreApiUrl: string;
     myAccount: Account | null;
     onTransferSuccess: () => void;
 }
 
-export function Transfers({ token, apiUrl, myAccount, onTransferSuccess }: TransfersProps) {
+export function Transfers({ token, coreApiUrl, myAccount, onTransferSuccess }: TransfersProps) {
     const [beneficiaries, setBeneficiaries] = useState<Beneficiary[]>([]);
     const [amount, setAmount] = useState('');
     const [destAccount, setDestAccount] = useState('');
@@ -27,19 +27,19 @@ export function Transfers({ token, apiUrl, myAccount, onTransferSuccess }: Trans
     const [newBenPhone, setNewBenPhone] = useState('');
 
     useEffect(() => {
-        fetch(`${apiUrl}/core/beneficiaries`, {
+        fetch(`${coreApiUrl}/beneficiaries`, {
             headers: { Authorization: `Bearer ${token}` }
         })
             .then(res => res.json())
             .then(data => setBeneficiaries(Array.isArray(data) ? data : []))
             .catch(console.error);
-    }, [token, apiUrl]);
+    }, [token, coreApiUrl]);
 
     const handleTransfer = async (e: React.FormEvent) => {
         e.preventDefault();
         setMessage(null);
         try {
-            const res = await fetch(`${apiUrl}/core/transfer`, {
+            const res = await fetch(`${coreApiUrl}/transfer`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -72,7 +72,7 @@ export function Transfers({ token, apiUrl, myAccount, onTransferSuccess }: Trans
 
     const handleSaveBeneficiary = async () => {
         try {
-            const res = await fetch(`${apiUrl}/core/beneficiaries`, {
+            const res = await fetch(`${coreApiUrl}/beneficiaries`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

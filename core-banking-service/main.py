@@ -6,6 +6,7 @@ from pydantic import BaseModel
 import jwt
 import random
 import datetime
+import os
 from typing import Optional, List
 
 # Create tables
@@ -94,11 +95,21 @@ class CardResponse(BaseModel):
     card_number: str
     expiry: str
     cvv: str
+    credit_limit: float
     
     class Config:
         from_attributes = True
 
-SECRET_KEY = "mysecretkey"
+class PaymentRequest(BaseModel):
+    card_number: str
+    expiry: str
+    cvv: str
+    amount: float
+    description: Optional[str] = "Purchase"
+    destination_account: str
+
+# JWT Configuration - Use environment variable in production!
+SECRET_KEY = os.getenv("SECRET_KEY", "mysecretkey")
 ALGORITHM = "HS256"
 
 def get_current_user_payload(authorization: str = Header(None)):
@@ -153,7 +164,7 @@ def create_card(payload: dict = Depends(get_current_user_payload), db: Session =
     expiry = f"{month}/{year}"
     cvv = f"{random.randint(100,999)}"
 
-    new_card = Card(user_id=user_id, card_number=card_num, expiry=expiry, cvv=cvv)
+    new_card = Card(user_id=user_id, card_number=card_num, expiry=expiry, cvv=cvv, credit_limit=5000.0)
     db.add(new_card)
     db.commit()
     db.refresh(new_card)
@@ -277,6 +288,7 @@ def transfer(req: TransferRequest, payload: dict = Depends(get_current_user_payl
     db.commit()
     return {"message": "Transfer successful", "new_balance": from_account.balance}
 
+<<<<<<< HEAD
 @app.post("/external/transfer-in")
 def external_transfer_in(req: ExternalTransferRequest, db: Session = Depends(get_db)):
     # Note: Depending on security requirements, this endpoint might need its own
@@ -309,11 +321,68 @@ def external_transfer_in(req: ExternalTransferRequest, db: Session = Depends(get
         user_id=to_account.user_id,
         title="Transferencia Externa Recibida",
         message=f"Has recibido ${req.amount} desde {req.external_bank_name}.",
+=======
+@app.post("/payments/card")
+def card_payment(req: PaymentRequest, db: Session = Depends(get_db)):
+    # 1. Find the card
+    card = db.query(Card).filter(
+        Card.card_number == req.card_number,
+        Card.expiry == req.expiry,
+        Card.cvv == req.cvv
+    ).first()
+    
+    if not card:
+        raise HTTPException(status_code=400, detail="Incorrect card details")
+    
+    # 2. Check Credit Limit
+    if card.credit_limit < req.amount:
+        raise HTTPException(status_code=400, detail="Insufficient credit limit")
+    
+    # 3. Check Destination Account
+    dest_account = db.query(Account).filter(Account.account_number == req.destination_account).first()
+    if not dest_account:
+        raise HTTPException(status_code=404, detail="Destination account not found")
+
+    # 4. Process Payment (Debit Card)
+    card.credit_limit -= req.amount
+    
+    # 5. Process Deposit (Credit Account)
+    dest_account.balance += req.amount
+
+    # 6. Log Transactions
+    # Debit Transaction (Card Owner)
+    tx_out = Transaction(
+        user_id=card.user_id,
+        amount=-req.amount,
+        transaction_type="purchase",
+        description=f"Payment to {req.destination_account}: {req.description}",
+        timestamp=datetime.datetime.utcnow(),
+        related_account_id=dest_account.id
+    )
+    db.add(tx_out)
+
+    # Credit Transaction (Destination Account)
+    tx_in = Transaction(
+        user_id=dest_account.user_id,
+        amount=req.amount,
+        transaction_type="transfer_in",
+        description=f"Received from Credit Card: {req.description}",
+        timestamp=datetime.datetime.utcnow()
+    )
+    db.add(tx_in)
+    
+    # 7. Create Notification for Receiver
+    notif = Notification(
+        user_id=dest_account.user_id,
+        title="Pago Recibido",
+        message=f"Has recibido ${req.amount} de tarjeta de crédito.",
+>>>>>>> 34040974bc50e3f04b8c4aa96735776994d23296
         is_read=0
     )
     db.add(notif)
     
     db.commit()
+<<<<<<< HEAD
     
     # Security: Do NOT return the new balance to the external bank
     return {
@@ -323,6 +392,15 @@ def external_transfer_in(req: ExternalTransferRequest, db: Session = Depends(get
     }
 
 # CRITICAL ENDPOINT: MONEY PRINTER
+=======
+    db.refresh(card)
+    
+    return {
+        "message": "Payment successful",
+        "new_limit": card.credit_limit,
+        "transaction_id": tx_out.id
+    }
+>>>>>>> 34040974bc50e3f04b8c4aa96735776994d23296
 @app.post("/admin/mint-money")
 def mint_money(req: MintRequest, payload: dict = Depends(get_current_user_payload), db: Session = Depends(get_db)):
     role = payload.get("role")

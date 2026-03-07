@@ -5,17 +5,17 @@ import { Plus } from 'lucide-react';
 
 interface CardsProps {
     token: string;
-    apiUrl: string;
+    coreApiUrl: string;
     userFullName: string;
 }
 
-export function Cards({ token, apiUrl, userFullName }: CardsProps) {
+export function Cards({ token, coreApiUrl, userFullName }: CardsProps) {
     const [cards, setCards] = useState<Card[]>([]);
     const [loading, setLoading] = useState(true);
 
     const fetchCards = () => {
         setLoading(true);
-        fetch(`${apiUrl}/core/cards/me`, {
+        fetch(`${coreApiUrl}/cards/me`, {
             headers: { Authorization: `Bearer ${token}` }
         })
             .then(res => res.json())
@@ -25,7 +25,7 @@ export function Cards({ token, apiUrl, userFullName }: CardsProps) {
                     ...c,
                     cardHolder: userFullName,
                     color: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)', // Default blueish
-                    limit: 0, // Debit
+                    limit: c.credit_limit || 0, // Map credit limit
                     balance: 0, // Visual placeholder
                     type: 'mastercard'
                 })) : [];
@@ -47,11 +47,11 @@ export function Cards({ token, apiUrl, userFullName }: CardsProps) {
 
     useEffect(() => {
         fetchCards();
-    }, [token, apiUrl]);
+    }, [token, coreApiUrl]);
 
     const handleAddCard = async () => {
         try {
-            const res = await fetch(`${apiUrl}/core/cards`, {
+            const res = await fetch(`${coreApiUrl}/cards`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` }
             });

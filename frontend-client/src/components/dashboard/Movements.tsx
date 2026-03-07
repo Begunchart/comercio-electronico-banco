@@ -4,16 +4,16 @@ import { ArrowUpRight, ArrowDownLeft, Search } from 'lucide-react';
 
 interface MovementsProps {
     token: string;
-    apiUrl: string;
+    coreApiUrl: string;
 }
 
-export function Movements({ token, apiUrl }: MovementsProps) {
+export function Movements({ token, coreApiUrl }: MovementsProps) {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('');
 
     useEffect(() => {
-        fetch(`${apiUrl}/core/movements`, {
+        fetch(`${coreApiUrl}/movements`, {
             headers: { Authorization: `Bearer ${token}` }
         })
             .then(res => res.json())
@@ -25,7 +25,7 @@ export function Movements({ token, apiUrl }: MovementsProps) {
                 console.error(err);
                 setLoading(false);
             });
-    }, [token, apiUrl]);
+    }, [token, coreApiUrl]);
 
     const filtered = transactions.filter(t =>
         t.description.toLowerCase().includes(filter.toLowerCase()) ||
