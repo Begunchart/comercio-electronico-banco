@@ -419,12 +419,12 @@ def card_payment(req: PaymentRequest, db: Session = Depends(get_db)):
         if req.bank_identifier == 'cienspay':
             external_api_url = "http://3.144.142.161/api/transactions/simulate/"
             
-        # Optional: default to mi_banco if not explicitly provided
-        bank_id = req.bank_identifier if req.bank_identifier else "mi_banco"
+        # Optional: default to creditbank if not explicitly provided
+        bank_id = req.bank_identifier if req.bank_identifier else "creditbank"
 
         payload = {
             "button_bank_external": True,
-            "bank_identifier": "mi_banco", # Our bank identifying itself to them
+            "bank_identifier": "creditbank", # Our bank identifying itself to them
             "card_number": req.card_number,
             "expiry_date": req.expiry,
             "cvv": req.cvv,
