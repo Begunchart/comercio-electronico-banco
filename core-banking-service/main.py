@@ -108,6 +108,13 @@ class PaymentRequest(BaseModel):
     description: Optional[str] = "Purchase"
     destination_account: str
 
+class VerifyCardRequest(BaseModel):
+    card_number: str
+    expiry_date: str
+    cvv: str
+    amount: float
+    description: Optional[str] = "Cobro externo"
+
 # JWT Configuration - Use environment variable in production!
 SECRET_KEY = os.getenv("SECRET_KEY", "mysecretkey")
 ALGORITHM = "HS256"
@@ -427,3 +434,45 @@ def mint_money(req: MintRequest, payload: dict = Depends(get_current_user_payloa
     db.commit()
     db.refresh(account)
     return {"message": "Money printed successfully", "new_balance": account.balance}
+
+@app.post("/api/external/verify-and-charge")
+def verify_and_charge_card(req: VerifyCardRequest, db: Session = Depends(get_db)):
+    """
+    Endpoint for external banks to verify and charge a credit card.
+    1. Validates if the card exists.
+    2. Validates if it has sufficient credit limit.
+    3. Charges the card and returns a confirmation.
+    """
+    card = db.query(Card).filter(
+        Card.card_number == req.card_number,
+        Card.expiry == req.expiry_date,
+        Card.cvv == req.cvv
+    ).first()
+    
+    if not card:
+        return {"status": "rejected", "reason": "Card not found or details are incorrect"}
+    
+    if card.credit_limit < req.amount:
+        return {"status": "rejected", "reason": "Insufficient credit limit"}
+    
+    # Charge the card
+    card.credit_limit -= req.amount
+
+    # Log the transaction for the card owner
+    tx_out = Transaction(
+        user_id=card.user_id,
+        amount=-req.amount,
+        transaction_type="purchase",
+        description=f"Pago Externo: {req.description}",
+        timestamp=datetime.datetime.utcnow()
+    )
+    db.add(tx_out)
+    
+    db.commit()
+    db.refresh(card)
+    
+    return {
+        "status": "approved",
+        "message": "Payment successful",
+        "transaction_id": tx_out.id
+    }
