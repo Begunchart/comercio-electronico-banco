@@ -107,6 +107,7 @@ class PaymentRequest(BaseModel):
     amount: float
     description: Optional[str] = "Purchase"
     destination_account: str
+    bank_identifier: Optional[str] = None # Added for external bank routing
 
 class VerifyCardRequest(BaseModel):
     card_number: str
@@ -343,70 +344,141 @@ def external_transfer_in(req: ExternalTransferRequest, db: Session = Depends(get
 
 @app.post("/payments/card")
 def card_payment(req: PaymentRequest, db: Session = Depends(get_db)):
-    # 1. Find the card
+    import requests # Required for external API calls
+    
+    # 1. Check Destination Account (Must belong to OUR bank)
+    dest_account = db.query(Account).filter(Account.account_number == req.destination_account).first()
+    if not dest_account:
+        raise HTTPException(status_code=404, detail="Destination account not found in our bank")
+
+    # 2. Check if Card belongs to OUR bank
+    # Assuming our cards always start with 5200 for internal checks, 
+    # but the reliable way is to query our DB.
     card = db.query(Card).filter(
         Card.card_number == req.card_number,
         Card.expiry == req.expiry,
         Card.cvv == req.cvv
     ).first()
     
-    if not card:
-        raise HTTPException(status_code=400, detail="Incorrect card details")
-    
-    # 2. Check Credit Limit
-    if card.credit_limit < req.amount:
-        raise HTTPException(status_code=400, detail="Insufficient credit limit")
-    
-    # 3. Check Destination Account
-    dest_account = db.query(Account).filter(Account.account_number == req.destination_account).first()
-    if not dest_account:
-        raise HTTPException(status_code=404, detail="Destination account not found")
+    if card:
+        # --- INTERNAL CARD FLOW ---
+        if card.credit_limit < req.amount:
+            raise HTTPException(status_code=400, detail="Insufficient credit limit")
+        
+        # Debitar Tarjeta Interna
+        card.credit_limit -= req.amount
+        
+        # Acreditar Cuenta Destino
+        dest_account.balance += req.amount
 
-    # 4. Process Payment (Debit Card)
-    card.credit_limit -= req.amount
-    
-    # 5. Process Deposit (Credit Account)
-    dest_account.balance += req.amount
+        # Log Transactions
+        tx_out = Transaction(
+            user_id=card.user_id,
+            amount=-req.amount,
+            transaction_type="purchase",
+            description=f"Payment to {req.destination_account}: {req.description}",
+            timestamp=datetime.datetime.utcnow(),
+            related_account_id=dest_account.id
+        )
+        db.add(tx_out)
 
-    # 6. Log Transactions
-    # Debit Transaction (Card Owner)
-    tx_out = Transaction(
-        user_id=card.user_id,
-        amount=-req.amount,
-        transaction_type="purchase",
-        description=f"Payment to {req.destination_account}: {req.description}",
-        timestamp=datetime.datetime.utcnow(),
-        related_account_id=dest_account.id
-    )
-    db.add(tx_out)
+        tx_in = Transaction(
+            user_id=dest_account.user_id,
+            amount=req.amount,
+            transaction_type="transfer_in",
+            description=f"Received from Credit Card: {req.description}",
+            timestamp=datetime.datetime.utcnow()
+        )
+        db.add(tx_in)
+        
+        notif = Notification(
+            user_id=dest_account.user_id,
+            title="Pago Recibido",
+            message=f"Has recibido ${req.amount} de tarjeta de crédito interna.",
+            is_read=0
+        )
+        db.add(notif)
+        
+        db.commit()
+        db.refresh(card)
+        
+        return {
+            "message": "Payment successful (Internal)",
+            "new_limit": card.credit_limit,
+            "transaction_id": tx_out.id
+        }
+    else:
+        # --- EXTERNAL CARD FLOW ---
+        # Card not found in our DB -> It belongs to another bank.
+        # We need to call the external bank's API to charge it.
+        
+        # Determine the target API URL based on bank_identifier or card prefix
+        external_api_url = os.getenv("EXTERNAL_BANK_API_URL", "http://3.144.142.161/api/transactions/simulate/")
+        
+        # You can add specific IPs per bank identifiers here in the future
+        if req.bank_identifier == 'cienspay':
+            external_api_url = "http://3.144.142.161/api/transactions/simulate/"
+            
+        # Optional: default to mi_banco if not explicitly provided
+        bank_id = req.bank_identifier if req.bank_identifier else "mi_banco"
 
-    # Credit Transaction (Destination Account)
-    tx_in = Transaction(
-        user_id=dest_account.user_id,
-        amount=req.amount,
-        transaction_type="transfer_in",
-        description=f"Received from Credit Card: {req.description}",
-        timestamp=datetime.datetime.utcnow()
-    )
-    db.add(tx_in)
-    
-    # 7. Create Notification for Receiver
-    notif = Notification(
-        user_id=dest_account.user_id,
-        title="Pago Recibido",
-        message=f"Has recibido ${req.amount} de tarjeta de crédito.",
-        is_read=0
-    )
-    db.add(notif)
-    
-    db.commit()
-    db.refresh(card)
-    
-    return {
-        "message": "Payment successful",
-        "new_limit": card.credit_limit,
-        "transaction_id": tx_out.id
-    }
+        payload = {
+            "button_bank_external": True,
+            "bank_identifier": "mi_banco", # Our bank identifying itself to them
+            "card_number": req.card_number,
+            "expiry_date": req.expiry,
+            "cvv": req.cvv,
+            "amount": req.amount,
+            "description": req.description
+        }
+
+        try:
+            # We use a short timeout so our API doesn't hang if the other bank is down
+            response = requests.post(
+                external_api_url, 
+                json=payload, 
+                headers={"Content-Type": "application/json"},
+                timeout=10 
+            )
+            
+            if response.status_code == 200: 
+                response_data = response.json()
+                if response_data.get("status") == "approved":
+                    # 1. External Bank approved the charge. We credit our user's account.
+                    dest_account.balance += req.amount
+                    
+                    # 2. Log the transaction as an external payment inward
+                    tx_in = Transaction(
+                        user_id=dest_account.user_id,
+                        amount=req.amount,
+                        transaction_type="transfer_in",
+                        description=f"Received from External Card ({req.card_number[-4:]}): {req.description}",
+                        timestamp=datetime.datetime.utcnow()
+                    )
+                    db.add(tx_in)
+                    
+                    notif = Notification(
+                        user_id=dest_account.user_id,
+                        title="Pago Externo Recibido",
+                        message=f"Has recibido ${req.amount} desde una tarjeta externa.",
+                        is_read=0
+                    )
+                    db.add(notif)
+                    db.commit()
+                    
+                    return {
+                        "message": "Payment successful",
+                        "transaction_id": tx_in.id
+                    }
+                else:
+                    raise HTTPException(status_code=400, detail=response_data.get("reason", "External bank rejected the transaction"))
+            else:
+                 raise HTTPException(status_code=400, detail="External bank rejected the transaction")
+
+        except requests.exceptions.RequestException as e:
+            # Catch connection errors, timeouts, etc. to the other bank
+            print(f"Failed to reach external bank: {e}")
+            raise HTTPException(status_code=502, detail="External bank timeout or unavailable")
 
 @app.post("/admin/mint-money")
 def mint_money(req: MintRequest, payload: dict = Depends(get_current_user_payload), db: Session = Depends(get_db)):
