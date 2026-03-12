@@ -441,7 +441,14 @@ def card_payment(req: PaymentRequest, db: Session = Depends(get_db)):
                 timeout=10 
             )
             
-            if response.status_code == 200: 
+            # --- AGREGADO PARA VER LOS LOGS EN CONSOLA ---
+            print("=== RESPUESTA DE LA API DEL BANCO EXTERNO ===")
+            print(f"URL a la que se envió: {external_api_url}")
+            print(f"Status Code que arrojó: {response.status_code}")
+            print(f"Cuerpo de la respuesta (Raw text): {response.text}")
+            print("=============================================")
+            
+            if response.status_code == 200:
                 response_data = response.json()
                 if response_data.get("status") == "approved":
                     # 1. External Bank approved the charge. We credit our user's account.
