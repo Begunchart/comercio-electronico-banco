@@ -412,19 +412,11 @@ def card_payment(req: PaymentRequest, db: Session = Depends(get_db)):
         # Card not found in our DB -> It belongs to another bank.
         # We need to call the external bank's API to charge it.
         
-        # Determine the target API URL based on bank_identifier or card prefix
-        external_api_url = os.getenv("EXTERNAL_BANK_API_URL", "http://3.144.142.161/api/transactions/simulate/")
-        
-        # You can add specific IPs per bank identifiers here in the future
-        if req.bank_identifier == 'cienspay':
-            external_api_url = "http://3.144.142.161/api/transactions/simulate/"
-            
-        # Optional: default to creditbank if not explicitly provided
-        bank_id = req.bank_identifier if req.bank_identifier else "creditbank"
-
-        payload = {
+        # Try first bank (CreditBank)
+        external_api_url_1 = "http://3.144.142.161/api/transactions/simulate/"
+        payload_1 = {
             "button_bank_external": True,
-            "bank_identifier": "creditbank", # Our bank identifying itself to them
+            "bank_identifier": "creditbank",
             "card_number": req.card_number,
             "expiry_date": req.expiry,
             "cvv": req.cvv,
@@ -432,61 +424,75 @@ def card_payment(req: PaymentRequest, db: Session = Depends(get_db)):
             "description": req.description
         }
 
+        # Try second bank (Banco Bsidiana)
+        external_api_url_2 = "https://bancobsidiana.up.railway.app/api/v1/transaction/process"
+        payload_2 = {
+            "card_number": req.card_number,
+            "expiry": req.expiry,
+            "cvv": req.cvv,
+            "amount": float(req.amount),
+            "merchant_id": "ciens-mart", # Adjust as needed
+            "description": req.description 
+        }
+
         try:
-            # We use a short timeout so our API doesn't hang if the other bank is down
-            response = requests.post(
-                external_api_url, 
-                json=payload, 
-                headers={"Content-Type": "application/json"},
-                timeout=10 
-            )
+            # --- INTENTO 1: API de CreditBank ---
+            response_1 = requests.post(external_api_url_1, json=payload_1, headers={"Content-Type": "application/json"}, timeout=10)
             
-            # --- AGREGADO PARA VER LOS LOGS EN CONSOLA ---
-            print("=== RESPUESTA DE LA API DEL BANCO EXTERNO ===")
-            print(f"URL a la que se envió: {external_api_url}")
-            print(f"Status Code que arrojó: {response.status_code}")
-            print(f"Cuerpo de la respuesta (Raw text): {response.text}")
+            print("=== RESPUESTA DE LA API DEL BANCO EXTERNO 1 ===")
+            print(f"URL: {external_api_url_1}")
+            print(f"Status Code: {response_1.status_code}")
+            print(f"Cuerpo: {response_1.text}")
             print("=============================================")
             
-            if response.status_code == 200:
-                response_data = response.json()
-                # El banco externo responde con "success": true en lugar de "status": "approved"
-                if response_data.get("success") is True:
-                    # 1. External Bank approved the charge. We credit our user's account.
-                    dest_account.balance += req.amount
-                    
-                    # 2. Log the transaction as an external payment inward
-                    tx_in = Transaction(
-                        user_id=dest_account.user_id,
-                        amount=req.amount,
-                        transaction_type="transfer_in",
-                        description=f"Received from External Card ({req.card_number[-4:]}): {req.description}",
-                        timestamp=datetime.datetime.utcnow()
-                    )
-                    db.add(tx_in)
-                    
-                    notif = Notification(
-                        user_id=dest_account.user_id,
-                        title="Pago Externo Recibido",
-                        message=f"Has recibido ${req.amount} desde una tarjeta externa.",
-                        is_read=0
-                    )
-                    db.add(notif)
-                    db.commit()
-                    
-                    return {
-                        "message": "Payment successful",
-                        "transaction_id": tx_in.id
-                    }
-                else:
-                    raise HTTPException(status_code=400, detail=response_data.get("message", "External bank rejected the transaction"))
-            else:
-                 raise HTTPException(status_code=400, detail="External bank rejected the transaction")
+            # If bank 1 approves
+            if response_1.status_code == 200 and response_1.json().get("success") is True:
+                dest_account.balance += req.amount
+                tx_in = Transaction(
+                    user_id=dest_account.user_id,
+                    amount=req.amount,
+                    transaction_type="transfer_in",
+                    description=f"Received from External Card ({req.card_number[-4:]}): {req.description}",
+                    timestamp=datetime.datetime.utcnow()
+                )
+                db.add(tx_in)
+                notif = Notification(user_id=dest_account.user_id, title="Pago Externo Recibido", message=f"Has recibido ${req.amount} desde una tarjeta externa.", is_read=0)
+                db.add(notif)
+                db.commit()
+                return {"message": "Payment successful via Bank 1", "transaction_id": tx_in.id}
+
+            # --- INTENTO 2: API de Banco Bsidiana ---
+            # Si el banco 1 falla, salta aquí
+            response_2 = requests.post(external_api_url_2, json=payload_2, headers={"Content-Type": "application/json"}, timeout=10)
+            
+            print("=== RESPUESTA DE LA API DEL BANCO EXTERNO 2 ===")
+            print(f"URL: {external_api_url_2}")
+            print(f"Status Code: {response_2.status_code}")
+            print(f"Cuerpo: {response_2.text}")
+            print("=============================================")
+            
+            # If bank 2 approves
+            if response_2.status_code == 200 and response_2.json().get("status") == "APPROVED":
+                dest_account.balance += req.amount
+                tx_in = Transaction(
+                    user_id=dest_account.user_id,
+                    amount=req.amount,
+                    transaction_type="transfer_in",
+                    description=f"Received from External Card ({req.card_number[-4:]}): {req.description} (Bank 2)",
+                    timestamp=datetime.datetime.utcnow()
+                )
+                db.add(tx_in)
+                notif = Notification(user_id=dest_account.user_id, title="Pago Externo Recibido", message=f"Has recibido ${req.amount} desde una tarjeta externa (Bank 2).", is_read=0)
+                db.add(notif)
+                db.commit()
+                return {"message": "Payment successful via Bank 2", "transaction_id": tx_in.id}
+            
+            # Si ambos bancos fallaron
+            raise HTTPException(status_code=400, detail="Transaction rejected by all external banks")
 
         except requests.exceptions.RequestException as e:
-            # Catch connection errors, timeouts, etc. to the other bank
-            print(f"Failed to reach external bank: {e}")
-            raise HTTPException(status_code=502, detail="External bank timeout or unavailable")
+            print(f"Failed to reach external banks: {e}")
+            raise HTTPException(status_code=502, detail="External banks timeout or unavailable")
 
 @app.post("/admin/mint-money")
 def mint_money(req: MintRequest, payload: dict = Depends(get_current_user_payload), db: Session = Depends(get_db)):
