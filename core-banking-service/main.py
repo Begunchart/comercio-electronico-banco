@@ -461,8 +461,13 @@ def card_payment(req: PaymentRequest, db: Session = Depends(get_db)):
                 db.commit()
                 return {"message": "Payment successful via Bank 1", "transaction_id": tx_in.id}
 
+        except requests.exceptions.RequestException as e:
+            # Si el banco 1 da error de timeout o caida, lo registramos pero continuamos al banco 2
+            print(f"--- FALLO INTENTO 1: API CreditBank Inaccesible o Timeout -> {e} ---")
+
+        try:
             # --- INTENTO 2: API de Banco Bsidiana ---
-            # Si el banco 1 falla, salta aquí
+            # Salta aquí si el banco 1 la rechazó (respondió negativamente) o si el try 1 de arriba cayó en el 'except' (timeout)
             response_2 = requests.post(external_api_url_2, json=payload_2, headers={"Content-Type": "application/json"}, timeout=10)
             
             print("=== RESPUESTA DE LA API DEL BANCO EXTERNO 2 ===")
@@ -487,11 +492,11 @@ def card_payment(req: PaymentRequest, db: Session = Depends(get_db)):
                 db.commit()
                 return {"message": "Payment successful via Bank 2", "transaction_id": tx_in.id}
             
-            # Si ambos bancos fallaron
+            # Si ambos bancos fallaron (el segundo respondió pero rechazó la tarjeta)
             raise HTTPException(status_code=400, detail="Transaction rejected by all external banks")
 
         except requests.exceptions.RequestException as e:
-            print(f"Failed to reach external banks: {e}")
+            print(f"Failed to reach Bank 2 after Bank 1 failed/rejected: {e}")
             raise HTTPException(status_code=502, detail="External banks timeout or unavailable")
 
 @app.post("/admin/mint-money")
