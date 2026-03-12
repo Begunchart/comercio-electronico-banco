@@ -450,7 +450,8 @@ def card_payment(req: PaymentRequest, db: Session = Depends(get_db)):
             
             if response.status_code == 200:
                 response_data = response.json()
-                if response_data.get("status") == "approved":
+                # El banco externo responde con "success": true en lugar de "status": "approved"
+                if response_data.get("success") is True:
                     # 1. External Bank approved the charge. We credit our user's account.
                     dest_account.balance += req.amount
                     
@@ -478,7 +479,7 @@ def card_payment(req: PaymentRequest, db: Session = Depends(get_db)):
                         "transaction_id": tx_in.id
                     }
                 else:
-                    raise HTTPException(status_code=400, detail=response_data.get("reason", "External bank rejected the transaction"))
+                    raise HTTPException(status_code=400, detail=response_data.get("message", "External bank rejected the transaction"))
             else:
                  raise HTTPException(status_code=400, detail="External bank rejected the transaction")
 
